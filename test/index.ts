@@ -1,8 +1,8 @@
-import { InfisicalSDK } from "../src";
+import { HanzoKmsSDK } from "../src";
 
 (async () => {
-	const client = new InfisicalSDK({
-		siteUrl: "http://localhost:8080" // Optional, defaults to https://app.infisical.com
+	const client = new HanzoKmsSDK({
+		siteUrl: "http://localhost:8080" // Optional, defaults to https://kms.hanzo.ai
 	});
 
 	const EMAIL_TO_INVITE = "<your-email>";

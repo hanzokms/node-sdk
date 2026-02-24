@@ -1,5 +1,5 @@
 import { FoldersApi } from "../api/endpoints/folders";
-import { newInfisicalError } from "./errors";
+import { newKmsError } from "./errors";
 import { CreateFolderOptions, ListFoldersOptions } from "../api/types/folders";
 
 export default class FoldersClient {
@@ -16,7 +16,7 @@ export default class FoldersClient {
       });
       return res.folder;
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 
@@ -31,7 +31,7 @@ export default class FoldersClient {
       });
       return res.folders;
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 }

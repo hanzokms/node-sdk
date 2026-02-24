@@ -1,8 +1,8 @@
-import { InfisicalSDK } from "../src";
+import { HanzoKmsSDK } from "../src";
 
 (async () => {
-	const client = new InfisicalSDK({
-		siteUrl: "https://app.infisical.com" // Optional, defaults to https://app.infisical.com
+	const client = new HanzoKmsSDK({
+		siteUrl: "https://kms.hanzo.ai" // Optional, defaults to https://kms.hanzo.ai
 	});
 
 	await client.auth().awsIamAuth.login({

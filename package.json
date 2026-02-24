@@ -1,5 +1,5 @@
 {
-  "name": "@infisical/sdk",
+  "name": "@hanzo/kms-sdk",
   "version": "0.0.0",
   "main": "./lib/index.js",
   "private": false,
@@ -10,18 +10,19 @@
     "build": "tsup src/index.ts --out-dir lib --dts --format cjs,esm --tsconfig tsconfig.json --no-splitting"
   },
   "keywords": [
-    "infisical",
-    "open-source",
+    "hanzo",
+    "kms",
+    "secrets",
     "sdk",
     "typescript"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/infisical/infisical-node-sdk.git"
+    "url": "git+https://github.com/hanzokms/node-sdk.git"
   },
-  "author": "Infisical Inc, <daniel@infisical.com>",
-  "license": "ISC",
-  "description": "The Infisical SDK provides a convenient way to programmatically interact with the Infisical API.",
+  "author": "Hanzo AI Inc. <eng@hanzo.ai>",
+  "license": "MIT",
+  "description": "The Hanzo KMS SDK provides a convenient way to programmatically interact with the Hanzo KMS API.",
   "devDependencies": {
     "@types/node": "^22.5.1",
     "tsc": "^2.0.4",
@@ -42,7 +43,7 @@
   },
   "types": "./lib/index.d.ts",
   "bugs": {
-    "url": "https://github.com/infisical/infisical-node-sdk/issues"
+    "url": "https://github.com/hanzokms/node-sdk/issues"
   },
-  "homepage": "https://github.com/infisical/infisical-node-sdk#readme"
+  "homepage": "https://github.com/hanzokms/node-sdk#readme"
 }

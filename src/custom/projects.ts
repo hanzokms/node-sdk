@@ -1,5 +1,5 @@
 import { ProjectsApi } from "../api/endpoints/projects";
-import { newInfisicalError } from "./errors";
+import { newKmsError } from "./errors";
 import { CreateProjectOptions, InviteMemberToProjectOptions } from "../api/types/projects";
 
 export default class ProjectsClient {
@@ -10,7 +10,7 @@ export default class ProjectsClient {
       const res = await this.apiClient.create(options);
       return res.project;
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 
@@ -23,7 +23,7 @@ export default class ProjectsClient {
       const res = await this.apiClient.inviteMembers(options);
       return res.memberships;
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 }

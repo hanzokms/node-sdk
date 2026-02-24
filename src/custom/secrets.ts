@@ -1,5 +1,5 @@
 import { SecretsApi } from "../api/endpoints/secrets";
-import { newInfisicalError } from "./errors";
+import { newKmsError } from "./errors";
 import { ListSecretsOptions, GetSecretOptions, UpdateSecretOptions, CreateSecretOptions, DeleteSecretOptions } from "../api/types/secrets";
 
 const convertBool = (value?: boolean) => (value ? "true" : "false");
@@ -46,7 +46,7 @@ export default class SecretsClient {
 
 			return res;
 		} catch (err) {
-			throw newInfisicalError(err);
+			throw newKmsError(err);
 		}
 	};
 
@@ -100,7 +100,7 @@ export default class SecretsClient {
       });
       return res.secret;
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 
@@ -121,7 +121,7 @@ export default class SecretsClient {
         metadata: options.metadata,
       });
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 
@@ -140,7 +140,7 @@ export default class SecretsClient {
         type: options.type,
       });
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 
@@ -153,7 +153,7 @@ export default class SecretsClient {
         type: options.type,
       });
     } catch (err) {
-      throw newInfisicalError(err);
+      throw newKmsError(err);
     }
   };
 }

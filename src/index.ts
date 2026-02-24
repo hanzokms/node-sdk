@@ -15,11 +15,11 @@ import FoldersClient from "./custom/folders";
 import { KmsApi } from "./api/endpoints/kms";
 import KmsClient from "./custom/kms";
 
-type InfisicalSDKOptions = {
+type HanzoKmsSDKOptions = {
 	siteUrl?: string;
 };
 
-class InfisicalSDK {
+class HanzoKmsSDK {
 	private apiClient: ApiClient;
 
 	// API instances
@@ -40,8 +40,8 @@ class InfisicalSDK {
 	private foldersClient: FoldersClient;
 	private kmsClient: KmsClient;
 
-	constructor(options?: InfisicalSDKOptions) {
-		const baseURL = options?.siteUrl || "https://app.infisical.com";
+	constructor(options?: HanzoKmsSDKOptions) {
+		const baseURL = options?.siteUrl || "https://kms.hanzo.ai";
 
 		// Initialize the base API client
 		this.apiClient = new ApiClient({ baseURL });
@@ -86,7 +86,7 @@ class InfisicalSDK {
 }
 
 // Export main SDK class
-export { InfisicalSDK };
+export { HanzoKmsSDK };
 
 export * from "./api/types";
 

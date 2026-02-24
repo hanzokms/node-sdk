@@ -1,4 +1,4 @@
-import { newInfisicalError } from "./errors";
+import { newKmsError } from "./errors";
 import {
 	CreateKmsKeyOptions,
 	DeleteKmsKeyOptions,
@@ -21,7 +21,7 @@ export default class KmsClient {
 				const res = await this.apiClient.createKmsKey(options);
 				return res.key;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -30,7 +30,7 @@ export default class KmsClient {
 				const res = await this.apiClient.deleteKmsKey(options);
 				return res.key;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -40,7 +40,7 @@ export default class KmsClient {
 
 				return res.key;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -57,7 +57,7 @@ export default class KmsClient {
 				const res = await this.apiClient.encryptData(options);
 				return res.ciphertext;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -66,7 +66,7 @@ export default class KmsClient {
 				const res = await this.apiClient.decryptData(options);
 				return res.plaintext;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -82,7 +82,7 @@ export default class KmsClient {
 				const res = await this.apiClient.signData(options);
 				return res;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -91,7 +91,7 @@ export default class KmsClient {
 				const res = await this.apiClient.verifyData(options);
 				return res;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -100,7 +100,7 @@ export default class KmsClient {
 				const res = await this.apiClient.listSigningAlgorithms(options);
 				return res.signingAlgorithms;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 
@@ -109,7 +109,7 @@ export default class KmsClient {
 				const res = await this.apiClient.getSigningPublicKey(options);
 				return res.publicKey;
 			} catch (err) {
-				throw newInfisicalError(err);
+				throw newKmsError(err);
 			}
 		};
 

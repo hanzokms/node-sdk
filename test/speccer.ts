@@ -1,7 +1,7 @@
 import https from "https";
 import fs from "fs";
 
-const specUrl = "https://app.infisical.com/api/docs/json";
+const specUrl = "https://kms.hanzo.ai/api/docs/json";
 const outputFile = "filtered-spec.json";
 
 // List of endpoints you want to keep, with their HTTP methods
@@ -28,7 +28,7 @@ const desiredEndpoints: Endpoint[] = [
 	{ path: "/api/v1/auth/token-auth/identities/{identityId}/tokens", method: "POST" },
 	{ path: "/api/v1/auth/token-auth/tokens/{tokenId}", method: "PATCH" },
 	{ path: "/v1/auth/token-auth/tokens/{tokenId}/revoke", method: "POST" },
-  
+
 ];
 
 https

@@ -6,7 +6,7 @@ import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { HttpRequest } from "@aws-sdk/protocol-http";
 import { SignatureV4 } from "@aws-sdk/signature-v4";
 
-import { InfisicalSDKError } from "./errors";
+import { HanzoKmsSDKError } from "./errors";
 import { Secret } from "../api/types";
 
 export const getUniqueSecretsByKey = (secrets: Secret[]) => {
@@ -51,7 +51,7 @@ export const performAwsIamLogin = async (region: string) => {
 	const credentials = await fromNodeProviderChain()();
 
 	if (!credentials.accessKeyId || !credentials.secretAccessKey) {
-		throw new InfisicalSDKError("Credentials not found");
+		throw new HanzoKmsSDKError("Credentials not found");
 	}
 
 	const iamRequestURL = `https://sts.${region}.amazonaws.com/`;

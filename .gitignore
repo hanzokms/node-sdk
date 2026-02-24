@@ -129,7 +129,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-/src/infisicalapi_client
+/src/kmsapi_client
 /lib
 
 .DS_Store
