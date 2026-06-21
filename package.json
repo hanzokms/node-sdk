@@ -21,7 +21,7 @@
     "url": "git+https://github.com/hanzokms/node-sdk.git"
   },
   "author": "Hanzo AI Inc. <eng@hanzo.ai>",
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "description": "The Hanzo KMS SDK provides a convenient way to programmatically interact with the Hanzo KMS API.",
   "devDependencies": {
     "@types/node": "^22.5.1",
