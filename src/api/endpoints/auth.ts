@@ -15,7 +15,7 @@ export class AuthApi {
     data: UniversalAuthLoginRequest
   ): Promise<UniversalAuthLoginResponse> {
     return this.apiClient.post<UniversalAuthLoginResponse>(
-      "/api/v1/auth/universal-auth/login",
+      "/v1/kms/auth/login",
       data
     );
   }
