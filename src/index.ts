@@ -1,94 +1,46 @@
-import { ApiClient } from "./api/base";
-import { AuthApi } from "./api/endpoints/auth";
-import { SecretsApi } from "./api/endpoints/secrets";
-import { DynamicSecretsApi } from "./api/endpoints/dynamic-secrets";
-import { EnvironmentsApi } from "./api/endpoints/environments";
-import { ProjectsApi } from "./api/endpoints/projects";
-import { FoldersApi } from "./api/endpoints/folders";
+import { HttpClient } from "./http";
+import { AuthClient } from "./auth";
+import { SecretsClient } from "./secrets";
+import { HanzoKmsSDKOptions } from "./types";
 
-import SecretsClient from "./custom/secrets";
-import AuthClient from "./custom/auth";
-import DynamicSecretsClient from "./custom/dynamic-secrets";
-import EnvironmentsClient from "./custom/environments";
-import ProjectsClient from "./custom/projects";
-import FoldersClient from "./custom/folders";
-import { KmsApi } from "./api/endpoints/kms";
-import KmsClient from "./custom/kms";
+export const DEFAULT_SITE_URL = "https://kms.hanzo.ai";
+export const DEFAULT_ORG = "hanzo";
+export const KMS_ORG_ENV_NAME = "KMS_ORG";
 
-type HanzoKmsSDKOptions = {
-	siteUrl?: string;
-};
-
-class HanzoKmsSDK {
-	private apiClient: ApiClient;
-
-	// API instances
-	private authApi: AuthApi;
-	private secretsApi: SecretsApi;
-	private dynamicSecretsApi: DynamicSecretsApi;
-	private environmentsApi: EnvironmentsApi;
-	private projectsApi: ProjectsApi;
-	private foldersApi: FoldersApi;
-	private kmsApi: KmsApi;
-
-	// Domain clients
+/**
+ * HanzoKmsSDK talks to luxfi/kms (kms.hanzo.ai). Its whole surface:
+ *
+ *	const kms = new HanzoKmsSDK({ org: "hanzo" });
+ *	await kms.auth().login({ clientId, clientSecret });
+ *	await kms.secrets().put({ path: "providers/hanzo", name: "API_KEY", env: "main", value: "..." });
+ *	await kms.secrets().get({ path: "providers/hanzo", name: "API_KEY", env: "main" });
+ *	await kms.secrets().list({ path: "providers/hanzo", env: "main" });
+ *	await kms.secrets().delete({ path: "providers/hanzo", name: "API_KEY", env: "main" });
+ */
+export class HanzoKmsSDK {
+	private http: HttpClient;
 	private authClient: AuthClient;
 	private secretsClient: SecretsClient;
-	private dynamicSecretsClient: DynamicSecretsClient;
-	private environmentsClient: EnvironmentsClient;
-	private projectsClient: ProjectsClient;
-	private foldersClient: FoldersClient;
-	private kmsClient: KmsClient;
 
 	constructor(options?: HanzoKmsSDKOptions) {
-		const baseURL = options?.siteUrl || "https://kms.hanzo.ai";
+		this.http = new HttpClient({
+			baseURL: options?.siteUrl || DEFAULT_SITE_URL,
+			timeout: options?.timeout
+		});
 
-		// Initialize the base API client
-		this.apiClient = new ApiClient({ baseURL });
+		this.authClient = new AuthClient(this.http);
+		this.secretsClient = new SecretsClient(this.http, options?.org || process.env[KMS_ORG_ENV_NAME] || DEFAULT_ORG);
 
-		// Initialize API service instances
-		this.authApi = new AuthApi(this.apiClient);
-		this.secretsApi = new SecretsApi(this.apiClient);
-		this.dynamicSecretsApi = new DynamicSecretsApi(this.apiClient);
-		this.environmentsApi = new EnvironmentsApi(this.apiClient);
-		this.projectsApi = new ProjectsApi(this.apiClient);
-		this.foldersApi = new FoldersApi(this.apiClient);
-		this.kmsApi = new KmsApi(this.apiClient);
-
-		// Initialize domain clients
-		this.authClient = new AuthClient(this.authenticate.bind(this), this.authApi);
-		this.secretsClient = new SecretsClient(this.secretsApi);
-		this.dynamicSecretsClient = new DynamicSecretsClient(this.dynamicSecretsApi);
-		this.environmentsClient = new EnvironmentsClient(this.environmentsApi);
-		this.projectsClient = new ProjectsClient(this.projectsApi);
-		this.foldersClient = new FoldersClient(this.foldersApi);
-		this.kmsClient = new KmsClient(this.kmsApi);
+		if (options?.accessToken) {
+			this.authClient.accessToken(options.accessToken);
+		}
 	}
 
-	private authenticate(accessToken: string) {
-		// Set the token on the API client
-		this.apiClient.setAccessToken(accessToken);
-
-		// Reinitialize the auth client with the token
-		this.authClient = new AuthClient(this.authenticate.bind(this), this.authApi, accessToken);
-
-		return this;
-	}
-
-	// Public methods to access domain clients
-	secrets = () => this.secretsClient;
-	environments = () => this.environmentsClient;
-	projects = () => this.projectsClient;
-	folders = () => this.foldersClient;
-	dynamicSecrets = () => this.dynamicSecretsClient;
 	auth = () => this.authClient;
-	kms = () => this.kmsClient;
+	secrets = () => this.secretsClient;
 }
 
-// Export main SDK class
-export { HanzoKmsSDK };
-
-export * from "./api/types";
-
-// Export types and enums from schemas
-export { TDynamicSecretProvider, DynamicSecretProviders, SqlProviders } from "./custom/schemas";
+export { AuthClient } from "./auth";
+export { SecretsClient, DEFAULT_ENV } from "./secrets";
+export { HanzoKmsSDKError, HanzoKmsSDKRequestError } from "./errors";
+export * from "./types";

@@ -1,6 +1,7 @@
 # Hanzo KMS Node.js SDK
 
-The official Node.js SDK for [Hanzo KMS](https://kms.hanzo.ai) -- secret management, encryption, and key management for your applications.
+The official Node.js SDK for [Hanzo KMS](https://kms.hanzo.ai) — the org-scoped
+secret store served by [luxfi/kms](https://github.com/luxfi/kms).
 
 ## Installation
 
@@ -13,141 +14,112 @@ npm install @hanzo/kms-sdk
 ```typescript
 import { HanzoKmsSDK } from "@hanzo/kms-sdk";
 
-const client = new HanzoKmsSDK({
+const kms = new HanzoKmsSDK({
   siteUrl: "https://kms.hanzo.ai", // optional, this is the default
+  org: "hanzo"                     // optional, defaults to process.env.KMS_ORG, then "hanzo"
 });
 
-// Authenticate with Universal Auth
-await client.auth().universalAuth.login({
-  clientId: "your-client-id",
-  clientSecret: "your-client-secret",
+await kms.auth().login({
+  clientId: process.env.KMS_CLIENT_ID!,
+  clientSecret: process.env.KMS_CLIENT_SECRET!
 });
 
-// List secrets
-const secrets = await client.secrets().listSecrets({
-  environment: "production",
-  projectId: "your-project-id",
-});
-
-// Get a single secret
-const secret = await client.secrets().getSecret({
-  environment: "production",
-  projectId: "your-project-id",
-  secretName: "DATABASE_URL",
+const mnemonic = await kms.secrets().get({
+  path: "providers/hanzo",
+  name: "deploy-mnemonic",
+  env: "main"
 });
 ```
+
+## The API
+
+Every secret is keyed by `(path, name, env)` inside an organization. That is the
+whole model — there are no projects, folders, tags, versions or point-in-time
+recovery, because the server has no routes for them.
+
+| SDK call | Route |
+|----------|-------|
+| `auth().login({clientId, clientSecret})` | `POST /v1/kms/auth/login` |
+| `secrets().list({path, env?})` | `GET /v1/kms/orgs/{org}/secrets?path=&env=` |
+| `secrets().get({path, name, env?})` | `GET /v1/kms/orgs/{org}/secrets/{path}/{name}?env=` |
+| `secrets().put({path, name, value, env?})` | `POST /v1/kms/orgs/{org}/secrets` |
+| `secrets().delete({path, name, env?})` | `DELETE /v1/kms/orgs/{org}/secrets/{path}/{name}?env=` |
+
+`env` defaults to `"default"`. It is part of the storage key, never an alias:
+the same name under `main` and `test` is two different secrets.
 
 ## Authentication
 
-### Universal Auth
+`login()` exchanges a machine identity for an IAM bearer (OAuth2
+`client_credentials`, brokered by KMS) and sets it on the client:
 
 ```typescript
-await client.auth().universalAuth.login({
-  clientId: "your-client-id",
-  clientSecret: "your-client-secret",
-});
+const { expiresIn } = await kms.auth().login({ clientId, clientSecret });
 ```
 
-### AWS IAM Auth
+There is no renew route — log in again when the token expires. A bearer
+obtained elsewhere (a projected service token, say) can be used directly:
 
 ```typescript
-await client.auth().awsIamAuth.login({
-  identityId: "your-identity-id",
-});
+const kms = new HanzoKmsSDK({ accessToken: process.env.KMS_TOKEN });
+// or, on an existing client:
+kms.auth().accessToken(process.env.KMS_TOKEN!);
 ```
 
-### Direct Access Token
-
-```typescript
-client.auth().accessToken("your-access-token");
-```
+The bearer's IAM `owner` claim must resolve to the client's `org`, or the
+server answers 401.
 
 ## Secrets
 
 ```typescript
-// List secrets
-const { secrets } = await client.secrets().listSecrets({
-  environment: "production",
-  projectId: "project-id",
-});
+// Create AND update — the server has one upsert, so the SDK has one method.
+await kms.secrets().put({ path: "providers/hanzo", name: "API_KEY", env: "main", value: "..." });
 
-// Get a secret
-const secret = await client.secrets().getSecret({
-  environment: "production",
-  projectId: "project-id",
-  secretName: "API_KEY",
-});
+// Read a value.
+const apiKey = await kms.secrets().get({ path: "providers/hanzo", name: "API_KEY", env: "main" });
 
-// Create a secret
-await client.secrets().createSecret("NEW_SECRET", {
-  environment: "production",
-  projectId: "project-id",
-  secretValue: "secret-value",
-});
+// List the names under a path.
+const names = await kms.secrets().list({ path: "providers/hanzo", env: "main" });
 
-// Update a secret
-await client.secrets().updateSecret("EXISTING_SECRET", {
-  environment: "production",
-  projectId: "project-id",
-  secretValue: "new-value",
-});
-
-// Delete a secret
-await client.secrets().deleteSecret("OLD_SECRET", {
-  environment: "production",
-  projectId: "project-id",
-});
+// Delete.
+await kms.secrets().delete({ path: "providers/hanzo", name: "API_KEY", env: "main" });
 ```
 
-## KMS (Key Management)
+Paths are normalized to slash-joined segments (`"/a/b/"` and `"a/b"` are the
+same path) and each segment is percent-escaped on its own, so the separators
+reach the server intact — it splits the URL at the LAST slash to recover
+`(path, name)`. For the same reason a name may not contain `/`: the SDK throws
+rather than write a secret that could never be read back.
+
+## Errors
+
+Both error types are exported. `HanzoKmsSDKRequestError` carries the server's
+message plus `statusCode`; `HanzoKmsSDKError` covers everything the SDK refuses
+locally (missing path, slash in a name, a `version` that cannot be honoured).
 
 ```typescript
-import { EncryptionAlgorithm, KeyUsage } from "@hanzo/kms-sdk";
+import { HanzoKmsSDKRequestError } from "@hanzo/kms-sdk";
 
-// Create an encryption key
-const key = await client.kms().keys().create({
-  projectId: "project-id",
-  name: "my-encryption-key",
-  keyUsage: KeyUsage.ENCRYPTION,
-  encryptionAlgorithm: EncryptionAlgorithm.AES_256_GCM,
-});
-
-// Encrypt data
-const ciphertext = await client.kms().encryption().encrypt({
-  keyId: key.id,
-  plaintext: Buffer.from("sensitive data").toString("base64"),
-});
-
-// Decrypt data
-const plaintext = await client.kms().encryption().decrypt({
-  keyId: key.id,
-  ciphertext,
-});
-
-// Sign data
-const { signature } = await client.kms().signing().sign({
-  keyId: signingKey.id,
-  data: Buffer.from("data to sign").toString("base64"),
-  signingAlgorithm: SigningAlgorithm.ECDSA_SHA_256,
-});
-
-// Verify signature
-const { signatureValid } = await client.kms().signing().verify({
-  keyId: signingKey.id,
-  data: Buffer.from("data to sign").toString("base64"),
-  signature,
-  signingAlgorithm: SigningAlgorithm.ECDSA_SHA_256,
-});
+try {
+  await kms.secrets().get({ path: "providers/hanzo", name: "MISSING" });
+} catch (err) {
+  if (err instanceof HanzoKmsSDKRequestError && err.statusCode === 404) { /* ... */ }
+}
 ```
 
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `HANZO_KMS_MACHINE_IDENTITY_ID` | Machine identity ID for AWS IAM auth |
-| `UNIVERSAL_AUTH_CLIENT_ID` | Universal Auth client ID |
-| `UNIVERSAL_AUTH_CLIENT_SECRET` | Universal Auth client secret |
+| `KMS_ORG` | Organization used when `org` is not passed to the constructor. Defaults to `hanzo`. |
+
+## Development
+
+```bash
+npm install
+npm test      # builds, then runs the contract tests against a stub luxfi/kms
+```
 
 ## License
 
-MIT - Hanzo AI Inc.
+BSD-3-Clause — Hanzo AI Inc. See `LICENSE` and `NOTICE`.

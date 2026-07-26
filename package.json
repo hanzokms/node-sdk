@@ -1,13 +1,14 @@
 {
   "name": "@hanzo/kms-sdk",
-  "version": "0.0.0",
+  "version": "4.0.7",
   "main": "./lib/index.js",
   "private": false,
   "files": [
     "lib"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --out-dir lib --dts --format cjs,esm --tsconfig tsconfig.json --no-splitting"
+    "build": "tsup src/index.ts --out-dir lib --dts --format cjs,esm --tsconfig tsconfig.json --no-splitting",
+    "test": "npm run build && node --test test/*.test.js"
   },
   "keywords": [
     "hanzo",
@@ -18,7 +19,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hanzokms/node-sdk.git"
+    "url": "git+https://github.com/hanzoai/kms-node-sdk.git"
   },
   "author": "Hanzo AI Inc. <eng@hanzo.ai>",
   "license": "BSD-3-Clause",
@@ -26,16 +27,11 @@
   "devDependencies": {
     "@types/node": "^22.5.1",
     "tsc": "^2.0.4",
-    "tsup": "^8.2.4"
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4"
   },
   "dependencies": {
-    "@aws-crypto/sha256-js": "^5.2.0",
-    "@aws-sdk/credential-providers": "3.600.0",
-    "@aws-sdk/protocol-http": "^3.370.0",
-    "@aws-sdk/signature-v4": "^3.370.0",
-    "axios": "^1.11.0",
-    "typescript": "^5.5.4",
-    "zod": "^3.23.8"
+    "axios": "^1.11.0"
   },
   "directories": {
     "lib": "lib",
@@ -43,7 +39,7 @@
   },
   "types": "./lib/index.d.ts",
   "bugs": {
-    "url": "https://github.com/hanzokms/node-sdk/issues"
+    "url": "https://github.com/hanzoai/kms-node-sdk/issues"
   },
-  "homepage": "https://github.com/hanzokms/node-sdk#readme"
+  "homepage": "https://github.com/hanzoai/kms-node-sdk#readme"
 }
