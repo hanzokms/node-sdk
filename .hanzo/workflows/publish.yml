@@ -13,9 +13,8 @@ name: Publish
 # something older than this tree?", and the comparison below is the only thing
 # that reads the truth. A path gate guesses it from the shape of a diff, so a
 # lockfile-only fix to a failed release matches no path and cannot re-run the
-# job it repaired. With no gate this is idempotent by construction — it
-# publishes what is ahead and nothing when nothing is — which is also what makes
-# the manual dispatch safe.
+# job it repaired. With no gate this is idempotent by construction, which is
+# also what makes the manual dispatch safe.
 on:
   push:
     branches: [main]
@@ -23,14 +22,14 @@ on:
 
 # Serialized, newest wins. Two builds in flight both read the registry before
 # either writes to it, so both believe the same version is unpublished and the
-# slower one ships a stale tree under a number the faster one already defined.
+# slower one ships a stale tree under a number the faster one defined.
 concurrency:
   group: publish
   cancel-in-progress: true
 
 jobs:
   publish:
-    runs-on: hanzo-build-linux-amd64
+    runs-on: hanzokms-build-linux-amd64
     steps:
       - uses: actions/checkout@v4
 
@@ -42,14 +41,13 @@ jobs:
 
       - run: npm ci
 
-      # `test` builds first, so this is the build gate too. It runs before the
-      # version becomes immutable rather than after — a broken `lib/` published
-      # under a real version cannot be taken back, only superseded.
+      # `test` builds first, so this is the build gate too, and it runs on every
+      # push rather than only a releasing one — a regression that only surfaces
+      # on release day surfaces on the day it is most expensive.
       - run: npm test
 
-      - name: Publish if the tree is ahead of the registry
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Is the tree ahead of the registry
+        id: ahead
         run: |
           NAME=$(jq -r .name package.json)
           NEW=$(jq -r .version package.json)
@@ -63,17 +61,50 @@ jobs:
           NEWEST=$(printf '%s\n%s\n' "$OLD" "$NEW" | sort -V | tail -1)
           if [ "$OLD" = "$NEW" ] || [ "$NEWEST" != "$NEW" ]; then
             echo "registry serves $OLD; tree is $NEW — nothing to publish."
-            exit 0
+            echo "yes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "registry serves $OLD; tree is $NEW — publishing."
+            echo "yes=true" >> "$GITHUB_OUTPUT"
+            echo "old=$OLD" >> "$GITHUB_OUTPUT"
+            echo "new=$NEW" >> "$GITHUB_OUTPUT"
           fi
-          # Said here, by name, or not at all. An empty token reaches npm as a
-          # bare ENEEDAUTH naming no secret and no org, which reads as a broken
-          # release rather than an unregistered credential — and this package
-          # has never been published, so there is no prior green run to compare
-          # against.
-          [ -n "$NODE_AUTH_TOKEN" ] || {
-            echo "::error::NPM_TOKEN is not registered for this repo (org hanzokms). It wants an automation token with publish rights on the @hanzo scope."
-            exit 1
-          }
 
-          echo "Publishing $NAME $OLD -> $NEW"
+      - name: Load the publish credential from KMS
+        if: steps.ahead.outputs.yes == 'true'
+        env:
+          KMS_CLIENT_ID: ${{ secrets.KMS_CLIENT_ID }}
+          KMS_CLIENT_SECRET: ${{ secrets.KMS_CLIENT_SECRET }}
+        run: |
+          # Only the KMS machine identity lives as a forge secret; a raw
+          # NPM_TOKEN beside it would be a second place to hold one thing —
+          # and the one that rots silently, since npm answers an unauthorised
+          # publish with 404 on PUT, not 401.
+          if [ -z "$KMS_CLIENT_ID" ] || [ -z "$KMS_CLIENT_SECRET" ]; then
+            echo "::error::KMS machine identity absent — cannot pull the npm credential. Seed KMS_CLIENT_ID/KMS_CLIENT_SECRET as git.hanzo.ai Actions secrets (org or repo scope)." >&2
+            exit 1
+          fi
+          KMS=https://kms.hanzo.ai; ENVN=prod
+          TOKEN=$(curl -sf "$KMS/v1/kms/auth/login" -H 'Content-Type: application/json' \
+            -d "{\"clientId\":\"$KMS_CLIENT_ID\",\"clientSecret\":\"$KMS_CLIENT_SECRET\"}" | jq -r .accessToken)
+          [ -n "$TOKEN" ] && [ "$TOKEN" != null ] || { echo "::error::KMS login failed"; exit 1; }
+          # The org is the token's owner claim, not a path segment, so the read
+          # names only the secret: /v1/kms/secrets/<name>?env=<env>.
+          URL="$KMS/v1/kms/secrets/NPM_TOKEN?env=$ENVN"
+          # No -f: under `bash -e -o pipefail` a `curl -sf` on a 404 exits 22
+          # and kills the step before any message of ours prints, which reads
+          # like a broken network. Capture the status and say it.
+          BODY=$(curl -s -w '\n%{http_code}' "$URL" -H "Authorization: Bearer $TOKEN") || true
+          CODE=$(printf '%s' "$BODY" | tail -1)
+          VAL=$(printf '%s' "$BODY" | sed '$d' | jq -r '.value // empty' 2>/dev/null || true)
+          if [ -z "$VAL" ]; then
+            echo "::error::KMS returned HTTP $CODE for $URL with no value — seed NPM_TOKEN there, not as a forge secret." >&2
+            exit 1
+          fi
+          echo "::add-mask::$VAL"
+          echo "NODE_AUTH_TOKEN=$VAL" >> "$GITHUB_ENV"
+
+      - name: Publish
+        if: steps.ahead.outputs.yes == 'true'
+        run: |
+          echo "Publishing ${{ steps.ahead.outputs.old }} -> ${{ steps.ahead.outputs.new }}"
           npm publish --access public
