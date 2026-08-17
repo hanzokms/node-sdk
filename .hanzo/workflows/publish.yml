@@ -65,5 +65,15 @@ jobs:
             echo "registry serves $OLD; tree is $NEW — nothing to publish."
             exit 0
           fi
+          # Said here, by name, or not at all. An empty token reaches npm as a
+          # bare ENEEDAUTH naming no secret and no org, which reads as a broken
+          # release rather than an unregistered credential — and this package
+          # has never been published, so there is no prior green run to compare
+          # against.
+          [ -n "$NODE_AUTH_TOKEN" ] || {
+            echo "::error::NPM_TOKEN is not registered for this repo (org hanzokms). It wants an automation token with publish rights on the @hanzo scope."
+            exit 1
+          }
+
           echo "Publishing $NAME $OLD -> $NEW"
           npm publish --access public
