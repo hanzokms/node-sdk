@@ -1,0 +1,69 @@
+name: Publish
+
+# The one thing here allowed to reach a registry.
+#
+# What this replaces had never published anything: `@hanzo/kms-sdk` is absent
+# from both npmjs and pkg.hanzo.ai while the tree carries 4.0.7 and a 4.0.6 tag
+# from the September before last. The inherited workflow explains why — it lived
+# in `.github/workflows`, which the forge does not read, and asked for
+# `ubuntu-22.04`, a hosted runner this fleet does not have. It was waiting on a
+# tag it could not have acted on anyway.
+#
+# No `paths:` filter, deliberately. The question is "does the registry serve
+# something older than this tree?", and the comparison below is the only thing
+# that reads the truth. A path gate guesses it from the shape of a diff, so a
+# lockfile-only fix to a failed release matches no path and cannot re-run the
+# job it repaired. With no gate this is idempotent by construction — it
+# publishes what is ahead and nothing when nothing is — which is also what makes
+# the manual dispatch safe.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Serialized, newest wins. Two builds in flight both read the registry before
+# either writes to it, so both believe the same version is unpublished and the
+# slower one ships a stale tree under a number the faster one already defined.
+concurrency:
+  group: publish
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: hanzo-build-linux-amd64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci
+
+      # `test` builds first, so this is the build gate too. It runs before the
+      # version becomes immutable rather than after — a broken `lib/` published
+      # under a real version cannot be taken back, only superseded.
+      - run: npm test
+
+      - name: Publish if the tree is ahead of the registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME=$(jq -r .name package.json)
+          NEW=$(jq -r .version package.json)
+          OLD=$(curl -sf "https://registry.npmjs.org/${NAME/\//%2f}" \
+                  | jq -r '."dist-tags".latest // "0.0.0"' 2>/dev/null || echo "0.0.0")
+
+          # FORWARD ONLY. `!=` fires in both directions and a revert would walk
+          # the registry backwards; only a strictly greater local version is a
+          # release. Asking the registry rather than the previous commit also
+          # survives a merge whose first parent already carries the bump.
+          NEWEST=$(printf '%s\n%s\n' "$OLD" "$NEW" | sort -V | tail -1)
+          if [ "$OLD" = "$NEW" ] || [ "$NEWEST" != "$NEW" ]; then
+            echo "registry serves $OLD; tree is $NEW — nothing to publish."
+            exit 0
+          fi
+          echo "Publishing $NAME $OLD -> $NEW"
+          npm publish --access public
