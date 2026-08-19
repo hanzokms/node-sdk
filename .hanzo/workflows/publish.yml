@@ -29,7 +29,13 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: hanzokms-build-linux-amd64
+    # hanzo-build-linux-amd64, not hanzokms-build-linux-amd64, and the difference is
+    # only whether the label exists yet. The runner declares its labels on daemon
+    # boot and nothing restarts it when its ConfigMap changes, so the hanzokms
+    # alias sits in universe undeclared — a job naming it waits for a runner that
+    # never answers. It is one alias onto these same slots; switch to it once the
+    # runner has rolled.
+    runs-on: hanzo-build-linux-amd64
     steps:
       - uses: actions/checkout@v4
 
