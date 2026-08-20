@@ -5,7 +5,7 @@ name: Publish
 # What this replaces had never published anything: `@hanzo/kms-sdk` is absent
 # from both npmjs and pkg.hanzo.ai while the tree carries 4.0.7 and a 4.0.6 tag
 # from the September before last. The inherited workflow explains why — it lived
-# in `.github/workflows`, which the forge does not read, and asked for
+# in `.github/workflows`, which Hanzo Git does not read, and asked for
 # `ubuntu-22.04`, a hosted runner this fleet does not have. It was waiting on a
 # tag it could not have acted on anyway.
 #
@@ -81,12 +81,12 @@ jobs:
           KMS_CLIENT_ID: ${{ secrets.KMS_CLIENT_ID }}
           KMS_CLIENT_SECRET: ${{ secrets.KMS_CLIENT_SECRET }}
         run: |
-          # Only the KMS machine identity lives as a forge secret; a raw
+          # Only the KMS machine identity lives as an Actions secret; a raw
           # NPM_TOKEN beside it would be a second place to hold one thing —
           # and the one that rots silently, since npm answers an unauthorised
           # publish with 404 on PUT, not 401.
           if [ -z "$KMS_CLIENT_ID" ] || [ -z "$KMS_CLIENT_SECRET" ]; then
-            echo "::error::KMS machine identity absent — cannot pull the npm credential. Seed KMS_CLIENT_ID/KMS_CLIENT_SECRET as git.hanzo.ai Actions secrets (org or repo scope)." >&2
+            echo "::error::KMS machine identity absent — cannot pull the npm credential. Seed KMS_CLIENT_ID/KMS_CLIENT_SECRET as Hanzo Git Actions secrets (org or repo scope)." >&2
             exit 1
           fi
           KMS=https://kms.hanzo.ai; ENVN=prod
@@ -103,7 +103,7 @@ jobs:
           CODE=$(printf '%s' "$BODY" | tail -1)
           VAL=$(printf '%s' "$BODY" | sed '$d' | jq -r '.value // empty' 2>/dev/null || true)
           if [ -z "$VAL" ]; then
-            echo "::error::KMS returned HTTP $CODE for $URL with no value — seed NPM_TOKEN there, not as a forge secret." >&2
+            echo "::error::KMS returned HTTP $CODE for $URL with no value — seed NPM_TOKEN there, not as an Actions secret." >&2
             exit 1
           fi
           echo "::add-mask::$VAL"
