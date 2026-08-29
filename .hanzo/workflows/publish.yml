@@ -35,7 +35,7 @@ jobs:
     # alias sits in universe undeclared — a job naming it waits for a runner that
     # never answers. It is one alias onto these same slots; switch to it once the
     # runner has rolled.
-    runs-on: hanzo-build-linux-amd64
+    runs-on: [hanzo-build-linux-amd64]
     steps:
       - uses: actions/checkout@v4
 
